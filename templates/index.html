@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SoFar</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        /* Apple-style typography and anti-aliasing */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #000000;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            height: 100vh; /* Strict 100% viewport height */
+            width: 100vw;
+            /* overflow: hidden; /* Mathematically prevents scrolling */
+            position: relative;
+        }
+
+        /* The Cinematic Background Blur */
+        .ambient-bg {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(80px) brightness(0.3);
+            transform: scale(1.1);
+            z-index: 1;
+            transition: background-image 0.8s ease-in-out;
+            display: none;
+        }
+
+        /* The Grid Layout: 5% + 90% + 5% = 100% 
+        */
+        .app-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* TOP 5% - HEADER */
+        header {
+            height: 5vh;
+            width: 100%;
+            display: flex;
+            align-items: flex-end; /* Pushes text to the bottom of its 5% container */
+            justify-content: center;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            color: #ffffff;
+            opacity: 0.9;
+        }
+
+        .logo::after {
+            content: "";
+            position: absolute;
+            left: -10%;
+            top: 50%;
+            width: 120%;
+            height: 2px;
+            background: #ff2a5f;
+            transform: rotate(-5deg);
+            box-shadow: 0 0 8px rgba(255, 42, 95, 0.6);
+        }
+
+        /* MIDDLE 90% - FRAME */
+        .frame-container {
+            height: 90vh;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2vh 2vw; /* Breathing room so it doesn't touch the screen edges */
+            box-sizing: border-box;
+        }
+
+        /* Apple Premium Glassmorphic Frame */
+        .frame {
+            background: rgba(40, 40, 40, 0.25);
+            backdrop-filter: blur(25px); /* Frosted glass effect */
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.15); /* Thin subtle border */
+            border-radius: 28px; /* Smooth, continuous Apple curve */
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+            padding: 10px; /* Small gap between frame and image */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease;
+            max-width: 100%;
+            max-height: 90%;
+        }
+
+        .frame:hover {
+            transform: scale(1.02);
+            background: rgba(60, 60, 60, 0.3);
+        }
+
+        /* Image sizing logic to fit perfectly within the 90vh bounds */
+        #display-img {
+            max-width: 100%;
+            max-height: calc(90vh - 4vh - 20px); /* 90vh minus padding to ensure zero overflow */
+            object-fit: contain;
+            border-radius: 18px; /* Inner radius slightly smaller than outer frame radius */
+            display: block;
+        }
+
+        #placeholder-text {
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 500;
+            letter-spacing: 1px;
+            padding: 60px 40px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* BOTTOM 5% - FOOTER */
+        footer {
+            height: 5vh;
+            width: 100%;
+            display: flex;
+            align-items: flex-start; /* Pulls text to the top of its 5% container */
+            justify-content: center;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.3);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg" id="bg-blur"></div>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">SoFar</div>
+        </header>
+
+        <div class="frame-container">
+            <div class="frame" id="photo-frame" onclick="triggerUpload()">
+                <p id="placeholder-text">Tap to upload</p>
+                <img id="display-img" src="" alt="Shared Frame" style="display: none;">
+            </div>
+        </div>
+
+        <input type="file" id="file-input" accept="image/*">
+
+        <footer>bxyzn</footer>
+    </div>
+
+    <script>
+        const socket = io();
+        const fileInput = document.getElementById('file-input');
+        const displayImg = document.getElementById('display-img');
+        const placeholderText = document.getElementById('placeholder-text');
+        const bgBlur = document.getElementById('bg-blur');
+
+        function triggerUpload() {
+            fileInput.click();
+        }
+
+        socket.on('update_image', (data) => {
+            if (data.url) {
+                displayImg.src = data.url;
+                displayImg.style.display = 'block';
+                placeholderText.style.display = 'none';
+
+                bgBlur.style.backgroundImage = `url('${data.url}')`;
+                bgBlur.style.display = 'block';
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                socket.emit('upload_image', {
+                    filename: file.name,
+                    file: event.target.result
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
