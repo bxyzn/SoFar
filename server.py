@@ -15,11 +15,16 @@ app.config['SECRET_KEY'] = 'secret_frame_key'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# Fetch the webhook URL from the environment variable securely
 DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL')
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
+
+socketio = SocketIO(
+    app, 
+    async_mode='eventlet', 
+    cors_allowed_origins="*", 
+    max_decode_size=16 * 1024 * 1024
+)
 
 current_photo = None
 
