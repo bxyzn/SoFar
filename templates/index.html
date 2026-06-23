@@ -17,7 +17,6 @@
             padding: 0;
             height: 100vh; /* Strict 100% viewport height */
             width: 100vw;
-            /* overflow: hidden; /* Mathematically prevents scrolling */
             position: relative;
         }
 
@@ -37,8 +36,6 @@
             display: none;
         }
 
-        /* The Grid Layout: 5% + 90% + 5% = 100% 
-        */
         .app-container {
             position: relative;
             z-index: 2;
@@ -54,7 +51,7 @@
             height: 5vh;
             width: 100%;
             display: flex;
-            align-items: flex-end; /* Pushes text to the bottom of its 5% container */
+            align-items: flex-end;
             justify-content: center;
         }
 
@@ -87,19 +84,19 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 2vh 2vw; /* Breathing room so it doesn't touch the screen edges */
+            padding: 2vh 2vw;
             box-sizing: border-box;
         }
 
         /* Apple Premium Glassmorphic Frame */
         .frame {
             background: rgba(40, 40, 40, 0.25);
-            backdrop-filter: blur(25px); /* Frosted glass effect */
+            backdrop-filter: blur(25px);
             -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.15); /* Thin subtle border */
-            border-radius: 28px; /* Smooth, continuous Apple curve */
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 28px;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-            padding: 10px; /* Small gap between frame and image */
+            padding: 10px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -114,12 +111,11 @@
             background: rgba(60, 60, 60, 0.3);
         }
 
-        /* Image sizing logic to fit perfectly within the 90vh bounds */
         #display-img {
             max-width: 100%;
-            max-height: calc(90vh - 4vh - 20px); /* 90vh minus padding to ensure zero overflow */
+            max-height: calc(90vh - 4vh - 20px);
             object-fit: contain;
-            border-radius: 18px; /* Inner radius slightly smaller than outer frame radius */
+            border-radius: 18px;
             display: block;
         }
 
@@ -141,7 +137,7 @@
             height: 5vh;
             width: 100%;
             display: flex;
-            align-items: flex-start; /* Pulls text to the top of its 5% container */
+            align-items: flex-start;
             justify-content: center;
             font-size: 0.7rem;
             color: rgba(255, 255, 255, 0.3);
@@ -185,6 +181,7 @@
             fileInput.click();
         }
 
+        // Listens for real-time updates and maps the source element instantly
         socket.on('update_image', (data) => {
             if (data.url) {
                 displayImg.src = data.url;
@@ -196,18 +193,29 @@
             }
         });
 
+        // Handshake switched over to standard HTML Form multipart uploads
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                socket.emit('upload_image', {
-                    filename: file.name,
-                    file: event.target.result
-                });
-            };
-            reader.readAsArrayBuffer(file);
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('File successfully uploaded, synchronization signal broadcasted.');
+                } else {
+                    console.error('Upload failed:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Network pipeline error during upload:', error);
+            });
         });
     </script>
 </body>
