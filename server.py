@@ -1,6 +1,9 @@
 import eventlet
 eventlet.monkey_patch()
+<<<<<<< HEAD
 
+=======
+>>>>>>> 102e987a53045e93d49381f5980eeddfccc6be7b
 import os
 import requests
 from flask import Flask, render_template, url_for, send_from_directory
