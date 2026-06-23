@@ -172,7 +172,10 @@
     </div>
 
     <script>
-        const socket = io();
+        const socket = io({ 
+            transports: ['websocket'], 
+            upgrade: false 
+        });
         const fileInput = document.getElementById('file-input');
         const displayImg = document.getElementById('display-img');
         const placeholderText = document.getElementById('placeholder-text');
